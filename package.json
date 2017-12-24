@@ -1,0 +1,22 @@
+{
+  "name": "qr.nkmun.cn-backend",
+  "version": "0.1.0",
+  "description": "QR Checkin Backend",
+  "main": "bin/qr-nkmun",
+  "repository": "git+https://github.com/NKMUN/hi.nkmun.cn-backend.git",
+  "author": "wacky6.AriesMBP <416707889@qq.com>",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "curry": "^1.2.0",
+    "jsonwebtoken": "^8.1.0",
+    "koa": "^2.4.1",
+    "koa-accesslog": "^0.0.2",
+    "koa-body": "^2.5.0",
+    "koa-mongo-sanitize": "github:wacky6/koa-mongo-sanitize",
+    "koa-router": "^7.3.0",
+    "mongodb": "2",
+    "password-prompt": "^1.0.3",
+    "shortid": "^2.2.8",
+    "yargs": "^10.0.3"
+  }
+}

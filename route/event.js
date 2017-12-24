@@ -1,0 +1,212 @@
+const Router = require('koa-router')
+const route = new Router()
+const { OrgAccessFilter } = require('./auth')
+const { newId } = require('../lib/id-util')
+const pluck = require('../lib/pluck')
+const paging = require('./paging')
+
+async function Event(ctx, next) {
+    const {org, event: eventId} = ctx.params
+    const event = await ctx.db.collection('event').findOne({ _id: `${org}.${eventId}`})
+    if (event) {
+        ctx.event = event
+        await next()
+    } else {
+        ctx.status = 404
+        ctx.body = { error: 'EVENT_NOT_FOUND', message: 'no such event' }
+    }
+}
+
+route.post('/orgs/:org/events/',
+    OrgAccessFilter('constable.event.create'),
+    async ctx => {
+        const {org} = ctx.params
+        const {
+            name,
+            start_at,
+            tardy_at,
+            end_at,
+        } = ctx.request.body
+        const _id = `${org}.${newId()}`
+
+        await ctx.db.collection('event').insertOne({
+            _id,
+            name,
+            org,
+            start_at,
+            tardy_at,
+            end_at,
+            created_at: new Date()
+        })
+
+        ctx.status = 200
+        ctx.body = toId(await ctx.db.collection('event').findOne({ _id }))
+    }
+)
+
+route.get('/orgs/:org/events/',
+    OrgAccessFilter('constable.event.get', 'steward'),
+    async ctx => {
+        const { org } = ctx.params
+        ctx.status = 200
+        ctx.body = await ctx.db.collection('event').aggregate([
+            { $match: { org } },
+            { $project: {
+                _id: false,
+                id: { $substr: ['$_id', org.length + 1, -1] },
+                name: '$name',
+                org: '$org',
+                start_at: '$start_at',
+                tardy_at: '$tardy_at',
+                end_at: '$end_at'
+            }}
+        ]).toArray()
+    }
+)
+
+route.patch('/orgs/:org/events/:event',
+    OrgAccessFilter('constable.event.modify'),
+    Event,
+    async ctx => {
+        const {org} = ctx.params
+        const payload = pluck(ctx.request.body, 'name', 'start_at', 'tardy_at', 'end_at')
+
+        await ctx.db.collection('event').updateOne(
+            { _id: ctx.event._id },
+            { $set: {
+                ...payload,
+                modified_at: new Date()
+            } }
+        )
+    }
+)
+
+route.delete('/orgs/:org/events/:event',
+    OrgAccessFilter('constable.event.delete'),
+    Event,
+    async ctx => {
+        const {org} = ctx.params
+        const payload = pluck(ctx.request.body, 'name', 'start_at', 'tardy_at', 'end_at')
+
+        await ctx.db.collection('event').deleteOne({ _id: ctx.event._id })
+        // TODO: delete participant's attendance record
+    }
+)
+
+const buildResultMatch = requestedResult => {
+    switch (requestedResult) {
+        case 'attended': return {
+
+        }
+        case 'late': return {
+
+        }
+        case 'absent': return {
+
+        }
+        default: return {}
+    }
+}
+
+route.get('/orgs/:org/events/:event/records',
+    OrgAccessFilter('constable.event.get'),
+    Event,
+    async ctx => {
+        const {org, event} = ctx.params
+        const {
+            role,
+            result,
+            orderBy = 'time'
+        } = ctx.request.query
+
+        let pipeline = [
+            { $match: { org } },
+            { $match: role ? { role: {$in: [role] } } : {} },
+            { $match: buildResultMatch(result) }
+            // TODO: sort
+        ]
+
+        await paging(
+            ctx,
+            db.collection('object'),
+            pipeline
+        )
+    }
+)
+
+route.post('/orgs/:org/events/:event/records/',
+    OrgAccessFilter('steward'),
+    Event,
+    async ctx => {
+        const {org} = ctx.params
+        const {steward, auth, extra, identifier} = ctx.request.body
+
+        // grace period, check for event ends/starts
+        const {start_at, tardy_at, end_at} = ctx.event
+        const GRACE_PERIOD = 60 * 1000 * 3
+        if (start_at - GRACE_PERIOD > Date.now()) {
+            ctx.status = 417
+            ctx.body = { error: 'EVENT_NOT_STARTED', message: 'event not started' }
+            return
+        }
+        if (end_at + GRACE_PERIOD < Date.now()) {
+            ctx.status = 417
+            ctx.body = { error: 'EVENT_HAS_ENDED', message: 'event has ended' }
+            return
+        }
+
+        // TODO: verify auth against identifier
+
+        const eventKey = `records.${ctx.params.event}`
+        const _id = `${org}.${identifier}`
+        const object = await ctx.db.collection('object').findOne(
+            { _id }, { [eventKey]: true }
+        )
+
+        if (!object) {
+            ctx.status = 404
+            ctx.body = { error: 'OBJECT_NOT_FOUND', message: 'object not found in org' }
+            return
+        }
+
+        if (object.records && Object.keys(object.records).length) {
+            // already checked in
+            ctx.status = 208
+        } else {
+            // not checked in
+            ctx.status = 200
+            await ctx.db.collection('object').updateOne(
+                { _id },
+                { $set: {
+                    [eventKey]: {
+                        conclusion: Date.now() < tardy_at + GRACE_PERIOD
+                                    ? 'attended'
+                                    : Date.now() < end_at + GRACE_PERIOD
+                                        ? 'late'
+                                        : 'absent',
+                        reported_at: new Date(),
+                        reported_by: steward,
+                        extra: extra,
+                    }
+                } }
+            )
+        }
+
+        const ret = await ctx.db.collection('object').findOne(
+            { _id },
+            { [eventKey]: true, name: true, role: true, extra: true }
+        )
+        // masq nested key to flat key
+        ret.record = ret.records[ctx.params.event]
+        delete ret.records
+        // masq internal id
+        ret.id = ret._id.slice(org.length + 1)
+        delete ret._id
+        ctx.body = ret
+    }
+)
+
+module.exports = {
+    Event,
+    routes: route.routes()
+}

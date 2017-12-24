@@ -1,0 +1,56 @@
+#!/usr/bin/env node
+
+const {
+    secret,
+    qrSecret,
+    apiKey,
+    apiSecret,
+    port,
+    host,
+    domain,
+    db
+} = require('yargs')
+    .describe('secret', 'secret to sign jwt, should > 128 bits')
+    .describe('qr-secret', 'secret to sign token, should > 128bits')
+    .describe('api-key', 'api key to verify other services')
+    .describe('api-secret', 'api secret to verify other services')
+    .describe('domain', 'qr code doman')
+    .describe('db', 'mongodb connection string')
+    .describe('port', 'port to listen')
+    .describe('host', 'host to listen')
+
+    .default('port', 8005, '8005')
+    .default('host', 'localhost' ,'localhost')
+    .default('db', 'mongodb://localhost:27017/qr', 'local qr db')
+    .default('domain', 'localhost', 'localhost')
+
+    .alias('s', 'secret')
+    .alias('q', 'qr-secret')
+    .alias('d', 'domain')
+    .argv
+
+if (!apiKey || !apiSecret) {
+    console.warn('API Authorization is disabled.')
+}
+if (!secret) {
+    console.warn('Using testing secret.')
+}
+if (!qrSecret) {
+    console.warn('Using testing qr secret.')
+}
+
+require('../server').create({
+    host,
+    port,
+    db,
+    secret: secret || 'secret',
+    qrSecret: qrSecret || 'qrSecret',
+    apiKey,
+    apiSecret,
+    domain
+})
+.catch(e => {
+    console.error(e.message)
+    console.error(e.stack)
+    process.exit(-1)
+})

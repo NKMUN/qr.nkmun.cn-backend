@@ -1,0 +1,80 @@
+#!/usr/bin/env node
+
+const {
+    user: userId,
+    db,
+    admin,
+    constable,
+    org,
+    password
+} = require('yargs')
+    .describe('db', 'mongodb connection string')
+    .describe('user', 'user name')
+    .describe('org', 'set organization')
+    .describe('admin', 'admin access')
+    .describe('password', 'prompt for password')
+    .describe('constable', 'constable access')
+
+    .boolean('admin')
+    .boolean('password')
+    .boolean('constable')
+
+    .default('db', 'mongodb://localhost:27017/qr', 'local qr db')
+
+    .alias('c', 'constable')
+    .alias('u', 'user')
+    .alias('a', 'admin')
+    .alias('p', 'password')
+    .alias('o', 'org')
+
+    .demandOption(['user'])
+    .argv
+
+process.on('SIGINT', () => process.exit(127) )
+
+;(async () => {
+    const qr = await require('mongodb').MongoClient.connect( db )
+    let user = { _id: userId }
+
+    let access = []
+    if (admin)
+        access.push('admin')
+    if (constable)
+        access.push('constable')
+    if (access.length)
+        user.access = access
+
+    if (password) {
+        try{
+            let password = await require('password-prompt')('Password: ')
+            user = Object.assign( user, require('../lib/password').derive(password) )
+        } catch(e) {
+            process.exit(1)
+        }
+    }
+
+    if (org)
+        user.org = org
+
+    const {
+        result: { ok }
+    } = await qr.collection('user').updateOne(
+        { _id: userId },
+        {
+          $set: user,
+          $currentDate: { modified_at: true }
+        },
+        { upsert: true }
+    )
+
+    if (ok) {
+        console.log('Update: ')
+        console.log(user)
+    }else{
+        console.log('Error: ')
+        console.log(result)
+    }
+
+    await qr.close()
+})()
+.catch(e => console.error(e.stack))
