@@ -1,7 +1,7 @@
 const Router = require('koa-router')
 const route = new Router()
 const { OrgAccessFilter } = require('./auth')
-const { newId, toId } = require('../lib/id-util')
+const { newId, trimId } = require('../lib/id-util')
 const pluck = require('../lib/pluck')
 const paging = require('./paging')
 const APIAccessFilter = require('./api-auth')
@@ -69,10 +69,7 @@ route.post('/orgs/:org/objects/',
         })
 
         ctx.status = 200
-        ctx.body = await ctx.db.collection('object').findOne(
-            { _id: insertedId },
-            PROJECT_OBJECT
-        )
+        ctx.body = trimId(await ctx.db.collection('object').findOne({ _id }))
     }
 )
 
@@ -101,7 +98,7 @@ route.patch('/orgs/:org/objects/:object',
         }
 
         ctx.status = 200
-        ctx.body = await ctx.db.collection('object').findOne({ _id }, PROJECT_OBJECT)
+        ctx.body = trimId( await ctx.db.collection('object').findOne({ _id }, { records: false }) )
     }
 )
 

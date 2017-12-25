@@ -1,7 +1,7 @@
 const Router = require('koa-router')
 const route = new Router()
 const { OrgAccessFilter } = require('./auth')
-const { newId } = require('../lib/id-util')
+const { newId, trimId } = require('../lib/id-util')
 const pluck = require('../lib/pluck')
 const paging = require('./paging')
 
@@ -40,7 +40,7 @@ route.post('/orgs/:org/events/',
         })
 
         ctx.status = 200
-        ctx.body = toId(await ctx.db.collection('event').findOne({ _id }))
+        ctx.body = trimId(await ctx.db.collection('event').findOne({ _id }))
     }
 )
 
@@ -70,14 +70,18 @@ route.patch('/orgs/:org/events/:event',
     async ctx => {
         const {org} = ctx.params
         const payload = pluck(ctx.request.body, 'name', 'start_at', 'tardy_at', 'end_at')
+        const _id = ctx.event._id
 
         await ctx.db.collection('event').updateOne(
-            { _id: ctx.event._id },
+            { _id },
             { $set: {
                 ...payload,
                 modified_at: new Date()
             } }
         )
+
+        ctx.status = 200
+        ctx.body = trimId( await ctx.db.collection('event').findOne({ _id }) )
     }
 )
 
@@ -87,8 +91,9 @@ route.delete('/orgs/:org/events/:event',
     async ctx => {
         const {org} = ctx.params
         const payload = pluck(ctx.request.body, 'name', 'start_at', 'tardy_at', 'end_at')
+        const _id = ctx.event._id
 
-        await ctx.db.collection('event').deleteOne({ _id: ctx.event._id })
+        await ctx.db.collection('event').deleteOne({ _id })
         // TODO: delete participant's attendance record
     }
 )
@@ -155,8 +160,6 @@ route.post('/orgs/:org/events/:event/records/',
             return
         }
 
-        // TODO: verify auth against identifier
-
         const eventKey = `records.${ctx.params.event}`
         const _id = `${org}.${identifier}`
         const object = await ctx.db.collection('object').findOne(
@@ -199,10 +202,7 @@ route.post('/orgs/:org/events/:event/records/',
         // masq nested key to flat key
         ret.record = ret.records[ctx.params.event]
         delete ret.records
-        // masq internal id
-        ret.id = ret._id.slice(org.length + 1)
-        delete ret._id
-        ctx.body = ret
+        ctx.body = trimId(ret)
     }
 )
 

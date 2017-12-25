@@ -11,7 +11,6 @@ module.exports = {
         db = 'mongodb://localhost:27017/test',
         domain = 'localhost',
         secret = require('crypto').randomBytes(32).toString('base64'),
-        qrSecret = require('crypto').randomBytes(32).toString('base64'),
         apiSecret = null,
         apiKey = null,
     }) {
@@ -19,7 +18,6 @@ module.exports = {
         app.proxy = true
 
         app.context.JWT_SECRET = secret
-        app.context.QR_SECRET = qrSecret
         app.context.API_KEY = apiKey
         app.context.API_SECRET = apiSecret
         app.context.DOMAIN = domain
