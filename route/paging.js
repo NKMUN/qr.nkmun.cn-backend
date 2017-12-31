@@ -14,7 +14,7 @@ module.exports = async function setPagingHeaders(ctx, coll, pipeline) {
         { $count: 'total' }
     ]).toArray()
 
-    const { total } = totalResult[0]
+    const { total } = totalResult[0] || { total: 0 }
 
     const page = parseInt(_page) || 0
     const pageSize = parseInt(_pageSize) || 10

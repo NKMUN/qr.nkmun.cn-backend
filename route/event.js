@@ -111,17 +111,17 @@ const buildResultMatch = (event, requestedResult) => {
     switch (requestedResult) {
         case 'attended': return {
             $or: [
-                { [`records.${event}.reported_by`]: 'attended' },
-                { [`records.${event}.reported_by`]: 'absent' }
+                { [`records.${event}.conclusion`]: 'attended' },
+                { [`records.${event}.conclusion`]: 'late' }
             ]
         }
         case 'late': return {
-            [`records.${event}.reported_by`]: 'late'
+            [`records.${event}.conclusion`]: 'late'
         }
         case 'absent': return {
             $or: [
-                { [`records.${event}.reported_by`]: { $exists: false } },
-                { [`records.${event}.reported_by`]: 'absent' }
+                { [`records.${event}.conclusion`]: { $exists: false } },
+                { [`records.${event}.conclusion`]: 'absent' }
             ]
         }
         case 'missing': return {
