@@ -7,6 +7,7 @@
   "author": "wacky6.AriesMBP <416707889@qq.com>",
   "license": "GPL-3.0",
   "dependencies": {
+    "archiver": "^2.1.0",
     "curry": "^1.2.0",
     "jsonwebtoken": "^8.1.0",
     "koa": "^2.4.1",
@@ -15,7 +16,9 @@
     "koa-mongo-sanitize": "github:wacky6/koa-mongo-sanitize",
     "koa-router": "^7.3.0",
     "mongodb": "2",
+    "parse-data-uri": "^0.2.0",
     "password-prompt": "^1.0.3",
+    "qrcode": "^1.2.0",
     "shortid": "^2.2.8",
     "yargs": "^10.0.3"
   }

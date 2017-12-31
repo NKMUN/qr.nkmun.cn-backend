@@ -1,0 +1,58 @@
+#!/usr/bin/env node
+
+const {
+    org,
+    db,
+    file: _file
+} = require('yargs')
+    .describe('org', 'organization to export')
+    .describe('db', 'mongodb connection string')
+    .describe('file', 'output zip filename, - for stdout')
+
+    .default('org', 'nkmun', 'nkmun')
+    .default('db', 'mongodb://localhost:27017/qr', 'local qr db')
+    .default('file', 'qr-{org}.zip', 'qr-{org}.zip')
+
+    .alias('o', 'org')
+    .alias('f', 'file')
+    .alias('d', 'domain')
+    .argv
+
+const file = _file.replace(/\{org\}/g, org)
+const QRCode = require('qrcode')
+const Archiver = require('archiver')
+const parseDataUri = require('parse-data-uri')
+
+;(async () => {
+    const qr = await require('mongodb').MongoClient.connect( db )
+
+    let out
+    if (file === '-') {
+        process.stderr.write('output to stdout\n')
+        out = process.stdout
+    } else {
+        process.stderr.write(`output to file ${file}\n`)
+        out = require('fs').createWriteStream(file)
+    }
+
+    let archive = Archiver('zip', {store: true})
+    archive.pipe(out)
+
+    const cursor = await qr.collection('object').aggregate([
+        { $match: { org } },
+    ])
+
+    while(await cursor.hasNext()) {
+        const obj = await cursor.next()
+        const qrId = obj._id.slice(obj.org.length + 1)
+        const dataUrl = await QRCode.toDataURL(`N/${qrId}`)
+        const { data } = parseDataUri(dataUrl)
+        const filename = `${obj.role[0]}-${obj.name}`
+        await archive.append(data, { name: `${filename}.png`, date: new Date() })
+        process.stderr.write(`written: ${filename}\n`)
+    }
+
+    archive.finalize()
+    qr.close()
+})()
+.catch(e => console.error(e.stack))
