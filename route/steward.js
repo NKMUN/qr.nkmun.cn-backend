@@ -26,7 +26,7 @@ route.post('/orgs/:org/stewards/',
 
         ctx.status = 200
         ctx.body = {
-            url: `https://${DOMAIN}/?preauth=${token}`
+            preauth: token
         }
     }
 )
