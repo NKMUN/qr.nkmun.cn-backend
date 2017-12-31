@@ -107,16 +107,25 @@ route.get('/orgs/:org/events/:event',
     }
 )
 
-const buildResultMatch = requestedResult => {
+const buildResultMatch = (event, requestedResult) => {
     switch (requestedResult) {
         case 'attended': return {
-
+            $or: [
+                { [`records.${event}.reported_by`]: 'attended' },
+                { [`records.${event}.reported_by`]: 'absent' }
+            ]
         }
         case 'late': return {
-
+            [`records.${event}.reported_by`]: 'late'
         }
         case 'absent': return {
-
+            $or: [
+                { [`records.${event}.reported_by`]: { $exists: false } },
+                { [`records.${event}.reported_by`]: 'absent' }
+            ]
+        }
+        case 'missing': return {
+            [`records.${event}.reported_by`]: { $exists: false }
         }
         default: return {}
     }
@@ -135,14 +144,24 @@ route.get('/orgs/:org/events/:event/records',
 
         let pipeline = [
             { $match: { org } },
-            { $match: role ? { role: {$in: [role] } } : {} },
-            { $match: buildResultMatch(result) }
-            // TODO: sort
+            { $match: role && role !== '*' ? { role: {$in: [role] } } : {} },
+            { $match: buildResultMatch(event, result) },
+            { $sort: { [`records.${event}.report_at`]: -1} },
+            { $project: {
+              _id: false,
+              id: { $substr: ['$_id', org.length + 1, -1] },
+              name: '$name',
+              role: '$role',
+              reported_by: `$records.${event}.reported_by`,
+              reported_at: `$records.${event}.reported_at`,
+              reported_extra: `$records.${event}.extra`,
+              conclusion: `$records.${event}.conclusion`,
+            } }
         ]
 
         await paging(
             ctx,
-            db.collection('object'),
+            ctx.db.collection('object'),
             pipeline
         )
     }

@@ -24,6 +24,20 @@ route.get('/orgs/:org/objects/:object',
     }
 )
 
+route.get('/orgs/:org/roles/',
+    OrgAccessFilter('constable.object.get'),
+    async ctx => {
+        const { org } = ctx.params
+        ctx.status = 200
+        ctx.body = await ctx.db.collection('object').aggregate([
+            { $match: { org } },
+            { $unwind: '$role' },
+            { $group: { _id: '$role' } },
+            { $project: { role: '$_id', _id: false } }
+        ]).toArray()
+    }
+)
+
 route.get('/orgs/:org/objects/',
     OrgAccessFilter('constable.object.get'),
     async ctx => {
@@ -37,7 +51,7 @@ route.get('/orgs/:org/objects/',
         const pipeline = [
             { $match: { org } },
             { $match: role ? { role: {$in: [role]} } : {} },
-            { $project: PROJECT_OBJECT(ctx.params.org) },
+            { $project: PROJECT_OBJECT(org) },
             // TODO: sort
             ...paging(page, pageSize)
         ]

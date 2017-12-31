@@ -7,12 +7,17 @@ function createPagingPipeline(page = 0, pageSize = Infinity) {
 }
 
 module.exports = async function setPagingHeaders(ctx, coll, pipeline) {
-    const { page, pageSize } = ctx.request.query
+    const { page: _page, pageSize: _pageSize } = ctx.request.query
 
-    const { total } = await coll.aggregate([
+    const totalResult = await coll.aggregate([
         ...pipeline,
         { $count: 'total' }
-    ])
+    ]).toArray()
+
+    const { total } = totalResult[0]
+
+    const page = parseInt(_page) || 0
+    const pageSize = parseInt(_pageSize) || 10
 
     ctx.status = 200
     ctx.set('X-Total', total)
