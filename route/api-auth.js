@@ -1,19 +1,19 @@
 module.exports = async function APIAccessFilter(ctx, next) {
     const {
         headers: {
-            'x-api-key': apiKey,
-            'x-api-secret': apiSecret
+            'x-api-identity': apiIdentity,
+            'x-api-key': apiKey
         },
-        API_KEY,
-        API_SECRET
+        API_IDENTITY,
+        API_KEY
     } = ctx
 
     // auth is disabled
-    if (!API_KEY || !API_SECRET) {
+    if (!API_IDENTITY || !API_KEY) {
         return await next()
     }
 
-    if (apiKey === API_KEY && apiSecret === API_SECRET) {
+    if (apiIdentity === API_IDENTITY && apiKey === API_KEY) {
         return await next()
     } else {
         ctx.status = 403

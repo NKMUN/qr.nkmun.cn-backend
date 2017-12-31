@@ -11,15 +11,15 @@ module.exports = {
         db = 'mongodb://localhost:27017/test',
         domain = 'localhost',
         secret = require('crypto').randomBytes(32).toString('base64'),
-        apiSecret = null,
         apiKey = null,
+        apiIdentity = null,
     }) {
         const app = new Koa()
         app.proxy = true
 
         app.context.JWT_SECRET = secret
+        app.context.API_IDENTITY = apiIdentity
         app.context.API_KEY = apiKey
-        app.context.API_SECRET = apiSecret
         app.context.DOMAIN = domain
         app.context.db = await require('mongodb').MongoClient.connect( db )
 

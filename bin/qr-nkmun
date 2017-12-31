@@ -3,16 +3,16 @@
 const {
     secret,
     qrSecret,
+    apiIdentity,
     apiKey,
-    apiSecret,
     port,
     host,
     domain,
     db
 } = require('yargs')
     .describe('secret', 'secret to sign jwt, should > 128 bits')
+    .describe('api-identity', 'api identity to verify other services')
     .describe('api-key', 'api key to verify other services')
-    .describe('api-secret', 'api secret to verify other services')
     .describe('domain', 'qr code doman')
     .describe('db', 'mongodb connection string')
     .describe('port', 'port to listen')
@@ -28,7 +28,7 @@ const {
     .alias('d', 'domain')
     .argv
 
-if (!apiKey || !apiSecret) {
+if (!apiIdentity || !apiKey) {
     console.warn('API Authorization is disabled.')
 }
 if (!secret) {
@@ -40,8 +40,8 @@ require('../server').create({
     port,
     db,
     secret: secret || 'secret',
+    apiIdentity,
     apiKey,
-    apiSecret,
     domain
 })
 .catch(e => {
