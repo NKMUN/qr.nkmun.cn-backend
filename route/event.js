@@ -98,6 +98,15 @@ route.delete('/orgs/:org/events/:event',
     }
 )
 
+route.get('/orgs/:org/events/:event',
+    OrgAccessFilter('constable.event.get'),
+    Event,
+    async ctx => {
+        ctx.status = 200
+        ctx.body = trimId(ctx.event, ctx.params.org)
+    }
+)
+
 const buildResultMatch = requestedResult => {
     switch (requestedResult) {
         case 'attended': return {
