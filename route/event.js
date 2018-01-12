@@ -146,7 +146,7 @@ route.get('/orgs/:org/events/:event/records',
             { $match: { org } },
             { $match: role && role !== '*' ? { role: {$in: [role] } } : {} },
             { $match: buildResultMatch(event, result) },
-            { $sort: { [`records.${event}.report_at`]: -1} },
+            { $sort: { [`records.${event}.report_at`]: -1, '_id': -1 } },
             { $project: {
               _id: false,
               id: { $substr: ['$_id', org.length + 1, -1] },
