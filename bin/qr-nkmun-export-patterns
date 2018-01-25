@@ -3,19 +3,24 @@
 const {
     org,
     db,
+    width,
     file: _file
 } = require('yargs')
     .describe('org', 'organization to export')
     .describe('db', 'mongodb connection string')
     .describe('file', 'output zip filename, - for stdout')
+    .describe('width', 'width of qr code, in pixels')
+    .number('width')
 
     .default('org', 'nkmun', 'nkmun')
     .default('db', 'mongodb://localhost:27017/qr', 'local qr db')
     .default('file', 'qr-{org}.zip', 'qr-{org}.zip')
+    .default('width', 300, '300px')
 
     .alias('o', 'org')
     .alias('f', 'file')
     .alias('d', 'domain')
+    .alias('w', 'width')
     .argv
 
 const file = _file.replace(/\{org\}/g, org)
@@ -45,7 +50,7 @@ const parseDataUri = require('parse-data-uri')
     while(await cursor.hasNext()) {
         const obj = await cursor.next()
         const qrId = obj._id.slice(obj.org.length + 1)
-        const dataUrl = await QRCode.toDataURL(`N/${qrId}`)
+        const dataUrl = await QRCode.toDataURL(`N/${qrId}`, { width })
         const { data } = parseDataUri(dataUrl)
         const filename = `${obj.role[0]}-${obj.name}`
         await archive.append(data, { name: `${filename}.png`, date: new Date() })
