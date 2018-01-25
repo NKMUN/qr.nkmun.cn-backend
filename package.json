@@ -21,5 +21,9 @@
     "qrcode": "^1.2.0",
     "shortid": "^2.2.8",
     "yargs": "^10.0.3"
+  },
+  "devDependencies": {
+    "commander": "^2.13.0",
+    "superagent": "^3.8.2"
   }
 }
