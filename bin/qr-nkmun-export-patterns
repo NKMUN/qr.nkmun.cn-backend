@@ -52,7 +52,8 @@ const parseDataUri = require('parse-data-uri')
         const qrId = obj._id.slice(obj.org.length + 1)
         const dataUrl = await QRCode.toDataURL(`N/${qrId}`, { width })
         const { data } = parseDataUri(dataUrl)
-        const filename = `${obj.role[0]}-${obj.name}`
+        // const filename = `${obj.role[0]}-${obj.name}`
+        const filename = qrId
         await archive.append(data, { name: `${filename}.png`, date: new Date() })
         process.stderr.write(`written: ${filename}\n`)
     }
