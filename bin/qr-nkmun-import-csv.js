@@ -30,16 +30,17 @@ function API_createObject({name, role, extra}) {
 
 const inputStream = csvPath === '-' ? process.stdin : require('fs').createReadStream(csvPath)
 const rl = require('readline').createInterface({ input: inputStream })
-let isFirst = true
-rl.on('line', async (line) => {
-  if (!isFirst) {
+const lines = []
+rl.on('line', line => lines.push(line))
+rl.on('close', async () => {
+  process.stdout.write(lines[0] + ',id\n')
+  for (let i = 1; i !== lines.length; ++i) {
+    process.stderr.write(`${i} / ${lines.length}`)
+    const line = lines[i]
     const [name, role, committee, school] = line.split(',')
     const {
       body: { id: qrId }
     } = await API_createObject({ name, role, extra: { school, committee } })
     process.stdout.write(line + ',' + qrId + '\n')
-  } else {
-    process.stdout.write(line + ',id' + '\n')
   }
-  isFirst = false
 })
