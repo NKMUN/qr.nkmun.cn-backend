@@ -35,6 +35,7 @@ module.exports = {
         app.use( require('./route/steward').routes )
         app.use( require('./route/event').routes )
         app.use( require('./route/object').routes )
+        app.use( require('./route/client-error').routes )
 
         let server = createServer( app.callback() )
                      .listen(port, host, () => {

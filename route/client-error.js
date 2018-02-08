@@ -11,3 +11,7 @@ route.post('/client-errors/',
         ctx.status = 204
     }
 )
+
+module.exports = {
+    routes: route.routes()
+}
